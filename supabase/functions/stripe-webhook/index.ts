@@ -23,9 +23,18 @@ Deno.serve(async (req) => {
   const body = await req.text();
 
   try {
+    // Verify webhook signature - required for security
+    if (!WEBHOOK_SECRET) {
+      throw new Error("STRIPE_WEBHOOK_SECRET is not set");
+    }
+    
+    if (!signature) {
+      throw new Error("Stripe-Signature header is missing");
+    }
+
     const event = await stripe.webhooks.constructEventAsync(
       body,
-      signature!,
+      signature,
       WEBHOOK_SECRET,
       undefined,
       cryptoProvider
@@ -53,6 +62,21 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case "customer.subscription.updated": {
+        const subscription = event.data.object;
+        // Update subscription status based on subscription status
+        // If subscription is active, set to premium; otherwise set to free
+        const subscriptionPlan = subscription.status === "active" ? "premium" : "free";
+        await supabase
+          .from("profiles")
+          .update({
+            subscription_plan: subscriptionPlan,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("stripe_customer_id", subscription.customer);
+        break;
+      }
+
       case "customer.subscription.deleted": {
         const subscription = event.data.object;
         await supabase
@@ -67,9 +91,18 @@ Deno.serve(async (req) => {
     }
 
     console.log("✅ Webhook processed successfully");
-    return new Response(JSON.stringify({ received: true }));
-  } catch (error) {
+    return new Response(JSON.stringify({ received: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error: any) {
     console.error("Error in stripe-webhook:", error.message);
-    return new Response(JSON.stringify({ error: error.message }));
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        status: error.type === "StripeSignatureVerificationError" ? 400 : 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 });

@@ -1,4 +1,8 @@
 -- Enable Stripe integration
+-- Note: FDW (Foreign Data Wrapper) approach is optional
+-- The app uses edge functions for Stripe operations, so FDW is not required
+-- Uncomment the following if you want to use FDW (requires wrappers extension with Stripe handler):
+/*
 create extension if not exists wrappers with schema extensions;
 create foreign data wrapper stripe_wrapper
   handler stripe_fdw_handler
@@ -26,8 +30,13 @@ options (
   object 'customers',
   rowid_column 'id'
 );
+*/
 
+-- Note: Customer creation/deletion is handled by edge functions
+-- The following triggers are commented out as they depend on FDW
+-- If you enable FDW above, you can uncomment these triggers:
 
+/*
 -- Function to handle Stripe customer creation
 create or replace function public.handle_stripe_customer_creation()
 returns trigger
@@ -87,6 +96,7 @@ create trigger delete_stripe_customer_on_profile_deletion
   before delete on public.profiles
   for each row
   execute function public.handle_stripe_customer_deletion();
+*/
 
 -- Security policy: Users can read their own Stripe data
 create policy "Users can read own Stripe data"

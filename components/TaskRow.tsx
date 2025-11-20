@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import Image from "next/image";
 import { Edit, Trash2 } from "lucide-react";
 import { getLabelColors } from "@/lib/labels";
 import { Task } from "@/types/models";
@@ -27,6 +28,23 @@ const TaskRow = ({ task, onDelete, onToggleComplete }: TaskRowProps) => {
             onToggleComplete(task.task_id, checked as boolean)
           }
         />
+      </TableCell>
+      <TableCell className="py-2">
+        {task.image_url && (
+          <Link href={`/task?id=${task.task_id}`}>
+            <div className="relative w-12 h-12 rounded-md overflow-hidden border border-gray-200">
+              <Image
+                src={`${
+                  process.env.NEXT_PUBLIC_SUPABASE_URL
+                }/storage/v1/object/public/task-attachments/${task.image_url}`}
+                alt={task.title || "Task image"}
+                fill
+                sizes="48px"
+                className="object-cover"
+              />
+            </div>
+          </Link>
+        )}
       </TableCell>
       <TableCell className="py-2">
         <Link

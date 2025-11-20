@@ -78,6 +78,7 @@ supabase db push
 
 # Deploy edge functions
 supabase functions deploy create-task-with-ai
+supabase functions deploy openai-chat
 supabase functions deploy create-stripe-session
 supabase functions deploy stripe-webhook
 ```
@@ -96,6 +97,47 @@ supabase functions deploy stripe-webhook
 ```bash
 supabase secrets set OPENAI_API_KEY=your-key
 ```
+
+#### Using OpenAI from Frontend
+
+All OpenAI API calls should go through the `openai-chat` Edge Function to keep your API key secure. The function is already deployed and ready to use.
+
+**Frontend Usage:**
+
+```typescript
+import { useOpenAI } from "@/hooks/useOpenAI";
+
+function MyComponent() {
+  const { chat, isLoading, error } = useOpenAI();
+
+  const handleChat = async () => {
+    try {
+      // Simple prompt
+      const result = await chat({
+        prompt: "What is the capital of France?",
+        model: "gpt-4o-mini",
+      });
+      console.log(result.content);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Or use full messages array for conversations
+  const handleConversation = async () => {
+    const result = await chat({
+      messages: [
+        { role: "system", content: "You are a helpful assistant." },
+        { role: "user", content: "Hello!" },
+      ],
+      model: "gpt-4o-mini",
+      temperature: 0.7,
+    });
+  };
+}
+```
+
+See `components/OpenAIChatExample.tsx` for a complete example component.
 
 ### Stripe Setup
 

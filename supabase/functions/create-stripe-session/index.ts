@@ -66,26 +66,50 @@ Deno.serve(async (req) => {
     }
 
     console.log(`🔎 Found profile: ${profile}`);
-    if (!profile?.stripe_customer_id) {
-      throw new Error("No Stripe customer found");
+    
+    // Get user email for Stripe customer creation
+    const { data: { user: authUser } } = await supabase.auth.getUser(user.id);
+    const userEmail = authUser?.email;
+    
+    let stripeCustomerId = profile.stripe_customer_id;
+    
+    // Create Stripe customer if one doesn't exist
+    if (!stripeCustomerId) {
+      console.log("📝 Creating new Stripe customer...");
+      const customer = await stripe.customers.create({
+        email: userEmail,
+        name: profile.name || undefined,
+        metadata: {
+          user_id: user.id,
+        },
+      });
+      
+      stripeCustomerId = customer.id;
+      
+      // Update profile with Stripe customer ID
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ stripe_customer_id: stripeCustomerId })
+        .eq("user_id", user.id);
+      
+      if (updateError) {
+        console.error("Error updating profile with Stripe customer ID:", updateError);
+        // Continue anyway - we have the customer ID
+      }
+      
+      console.log(`✅ Created Stripe customer: ${stripeCustomerId}`);
+    }
+
+    // Validate that STRIPE_PRICE_ID is set
+    if (!STRIPE_PRICE_ID) {
+      throw new Error("STRIPE_PRICE_ID is not configured. Please set it as a Supabase secret.");
     }
 
     const originUrl = req.headers.get("origin") ?? "http://localhost:3000";
 
-    // Create Portal session if already subscribed
-    if (profile.subscription_plan === "premium") {
-      const session = await stripe.billingPortal.sessions.create({
-        customer: profile.stripe_customer_id,
-        return_url: `${originUrl}/profile`,
-      });
-      return new Response(JSON.stringify({ url: session.url }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Create Checkout session for new subscribers
+    // Always create Checkout session to go to Stripe checkout page
     const session = await stripe.checkout.sessions.create({
-      customer: profile.stripe_customer_id,
+      customer: stripeCustomerId,
       line_items: [
         {
           price: STRIPE_PRICE_ID,

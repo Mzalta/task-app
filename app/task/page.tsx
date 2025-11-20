@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,6 +42,7 @@ import { useDropzone } from "react-dropzone";
 
 function TaskForm() {
   const params = useSearchParams();
+  const router = useRouter();
   const taskId = params.get("id")!;
   const {
     task,
@@ -95,6 +97,8 @@ function TaskForm() {
         title: "✅ Task Updated",
         description: "Task updated successfully",
       });
+      // Navigate back to dashboard after successful save
+      router.push("/dashboard");
     } catch (error: any) {
       toast({
         title: "❌ Error",

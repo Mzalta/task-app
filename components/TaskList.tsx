@@ -20,6 +20,7 @@ const TaskList = ({ tasks, onDelete, onToggleComplete }: TaskListProps) => {
       <TableHeader>
         <TableRow className="hover:bg-transparent">
           <TableHead className="w-[50px] py-2"></TableHead>
+          <TableHead className="w-[60px] py-2">Image</TableHead>
           <TableHead className="py-2">Title</TableHead>
           <TableHead className="w-[100px] py-2">Label</TableHead>
           <TableHead className="w-[120px] py-2">Due Date</TableHead>
