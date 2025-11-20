@@ -32,8 +32,6 @@ interface UseOpenAIReturn {
   clearError: () => void;
 }
 
-const OPENAI_ENDPOINT = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/openai-chat`;
-
 export function useOpenAI(): UseOpenAIReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +54,13 @@ export function useOpenAI(): UseOpenAIReturn {
       if (!session) {
         throw new Error("Not authenticated");
       }
+
+      // Construct endpoint with validation
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      if (!supabaseUrl) {
+        throw new Error("NEXT_PUBLIC_SUPABASE_URL is not configured");
+      }
+      const OPENAI_ENDPOINT = `${supabaseUrl}/functions/v1/openai-chat`;
 
       // Make request to Edge Function
       const response = await fetch(OPENAI_ENDPOINT, {
