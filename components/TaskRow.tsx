@@ -19,7 +19,35 @@ interface TaskRowProps {
 const TaskRow = ({ task, onDelete, onToggleComplete }: TaskRowProps) => {
   const formatDate = (dateString: string) => {
     try {
-      return format(new Date(dateString), "MMM d, yyyy");
+      // Check if the date includes time information
+      const hasTime = dateString.includes("T") && dateString.includes(":") && 
+                      dateString.match(/\d{2}:\d{2}/);
+      
+      if (hasTime) {
+        // Parse explicitly as local time by extracting components
+        let date: Date;
+        if (dateString.includes("Z") || dateString.match(/[+-]\d{2}:\d{2}$/)) {
+          // Has timezone indicator (UTC or offset), parse as ISO
+          date = new Date(dateString);
+        } else {
+          // No timezone, treat as local time - parse explicitly
+          // Format: YYYY-MM-DDTHH:mm:ss
+          const [datePart, timePart] = dateString.split("T");
+          const [year, month, day] = datePart.split("-").map(Number);
+          const [hours, minutes, seconds = 0] = timePart.split(":").map(Number);
+          
+          // Create date using local time components (no timezone conversion)
+          date = new Date(year, month - 1, day, hours, minutes, seconds || 0);
+        }
+        
+        // Format with date and time
+        return format(date, "MMM d, yyyy 'at' h:mm a");
+      } else {
+        // Just a date, parse it as local midnight
+        const [year, month, day] = dateString.split("-").map(Number);
+        const date = new Date(year, month - 1, day, 0, 0, 0);
+        return format(date, "MMM d, yyyy");
+      }
     } catch {
       return dateString.split("T")[0];
     }

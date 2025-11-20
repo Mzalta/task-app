@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTaskManager } from "@/hooks/useTaskManager";
+import { createBrowserClient } from "@supabase/ssr";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import TaskList from "@/components/TaskList";
@@ -16,16 +17,114 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
 export default function Dashboard() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { createTask, refreshTasks, tasks, deleteTask, toggleTaskComplete } =
-    useTaskManager();
+  const { 
+    createTask, 
+    refreshTasks, 
+    tasks, 
+    deleteTask, 
+    toggleTaskComplete
+  } = useTaskManager();
 
-  const handleCreateTask = async (title: string, description: string) => {
-    await createTask(title, description);
-    await refreshTasks();
-    console.log(`New Task Created: ${title}`);
-    setIsDialogOpen(false);
+  const handleCreateTask = async (
+    title: string,
+    description: string,
+    dueDate: Date | undefined,
+    imageFile: File | null
+  ) => {
+    try {
+      // Create the task first (this calls the AI function)
+      const newTask = await createTask(title, description);
+      
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      
+      // Get user session for image upload
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("No session found");
+
+      // Helper function to format date in local time without timezone conversion
+      const formatLocalDateTime = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        const hours = String(date.getHours()).padStart(2, "0");
+        const minutes = String(date.getMinutes()).padStart(2, "0");
+        const seconds = String(date.getSeconds()).padStart(2, "0");
+        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+      };
+
+      // Prepare updates
+      const updates: any = {};
+      if (dueDate) {
+        // dueDate is already the combined datetime from getCombinedDateTime()
+        // Always use explicit local time components to avoid any timezone issues
+        const year = dueDate.getFullYear();
+        const month = dueDate.getMonth();
+        const day = dueDate.getDate();
+        const hours = dueDate.getHours();
+        const minutes = dueDate.getMinutes();
+        
+        // Check if it has time information (not midnight)
+        const hasTime = hours !== 0 || minutes !== 0 || dueDate.getSeconds() !== 0;
+        if (hasTime) {
+          // Save datetime in local time format (no timezone conversion)
+          // Format explicitly using the extracted components
+          updates.due_date = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`;
+        } else {
+          // Save just the date part
+          updates.due_date = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        }
+      }
+
+      // Upload image if provided
+      let fileName: string | undefined;
+      if (imageFile) {
+        if (imageFile.size > MAX_FILE_SIZE) {
+          throw new Error("Image size must be less than 5MB");
+        }
+
+        const fileExt = imageFile.name.split(".").pop();
+        fileName = `${session.user.id}/${newTask.task_id}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from("task-attachments")
+          .upload(fileName, imageFile, {
+            upsert: true,
+            contentType: imageFile.type,
+            duplex: "half",
+            headers: {
+              "content-length": imageFile.size.toString(),
+            },
+          });
+
+        if (uploadError) throw uploadError;
+        updates.image_url = fileName;
+      }
+
+      // Update task with all additional fields if any
+      if (Object.keys(updates).length > 0) {
+        updates.updated_at = new Date().toISOString();
+        const { error } = await supabase
+          .from("tasks")
+          .update(updates)
+          .eq("task_id", newTask.task_id);
+
+        if (error) throw error;
+      }
+
+      await refreshTasks();
+      console.log(`New Task Created: ${title}`);
+      setIsDialogOpen(false);
+    } catch (error: any) {
+      console.error("Error creating task:", error);
+      throw error;
+    }
   };
 
   const completedTasks = tasks.filter((task) => task.completed).length;
@@ -49,7 +148,7 @@ export default function Dashboard() {
               Create Task
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Task</DialogTitle>
               <DialogDescription>

@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, LogOut, User, Mail, Calendar, TrendingUp } from "lucide-react";
+import { CreditCard, LogOut, User, Mail, Calendar, TrendingUp, ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -39,13 +40,21 @@ export default function Profile() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Profile Settings
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Manage your account information and subscription
-        </p>
+      <div className="flex items-center gap-4">
+        <Link href="/dashboard">
+          <Button variant="ghost" size="icon" className="h-9 w-9">
+            <ArrowLeft className="h-4 w-4" />
+            <span className="sr-only">Back to Dashboard</span>
+          </Button>
+        </Link>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Profile Settings
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Manage your account information and subscription
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

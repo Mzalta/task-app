@@ -46,7 +46,27 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
 
         if (error) throw error;
         setTask(task);
-        setDate(task.due_date ? new Date(task.due_date) : undefined);
+        // Parse due_date - it could be just a date (YYYY-MM-DD) or a full datetime
+        if (task.due_date) {
+          // Check if it's a datetime string (contains 'T' and ':')
+          if (task.due_date.includes("T") && task.due_date.includes(":")) {
+            // Parse explicitly as local time by extracting components
+            // Format: YYYY-MM-DDTHH:mm:ss
+            const [datePart, timePart] = task.due_date.split("T");
+            const [year, month, day] = datePart.split("-").map(Number);
+            const [hours, minutes, seconds = 0] = timePart.split(":").map(Number);
+            
+            // Create date using local time components (no timezone conversion)
+            const parsedDate = new Date(year, month - 1, day, hours, minutes, seconds || 0);
+            setDate(parsedDate);
+          } else {
+            // Just a date, parse as date-only at midnight local time
+            const [year, month, day] = task.due_date.split("-").map(Number);
+            setDate(new Date(year, month - 1, day, 0, 0, 0));
+          }
+        } else {
+          setDate(undefined);
+        }
       } catch (error: any) {
         console.error(`Error fetching task ID ${taskId}:`, error);
         setError(error.message);
@@ -69,16 +89,41 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
     setTask((prev) => (prev ? { ...prev, ...updates } : null));
   };
 
+  // Helper function to format date in local time without timezone conversion
+  const formatLocalDateTime = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+  };
+
   const saveTask = async (taskToSave?: Task) => {
     try {
       const taskData = taskToSave || task;
       if (!taskData) throw new Error("No task data to save");
 
+      // Save full datetime if date includes time, otherwise just date
+      let dueDateValue: string | null = null;
+      if (date) {
+        // Check if the date has time information (not midnight or has been explicitly set with time)
+        const hasTime = date.getHours() !== 0 || date.getMinutes() !== 0 || date.getSeconds() !== 0;
+        if (hasTime) {
+          // Save datetime in local time format (no timezone conversion)
+          dueDateValue = formatLocalDateTime(date);
+        } else {
+          // Save just the date part
+          dueDateValue = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+        }
+      }
+
       const { error } = await supabase
         .from("tasks")
         .update({
           ...taskData,
-          due_date: date?.toISOString().split("T")[0],
+          due_date: dueDateValue,
           updated_at: new Date().toISOString(),
         })
         .eq("task_id", taskData.task_id);

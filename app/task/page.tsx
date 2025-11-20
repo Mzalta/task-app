@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -9,13 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Popover,
   PopoverContent,
@@ -28,9 +21,9 @@ import {
   ArrowLeft,
   Trash2,
   AlertOctagon,
+  Clock,
 } from "lucide-react";
-import { labels } from "@/lib/labels";
-import { format } from "date-fns";
+import { format, isPast, isToday } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
 import { useTaskManager } from "@/hooks/useTaskManager";
@@ -58,6 +51,152 @@ function TaskForm() {
   const { session } = useAuth();
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
+  
+  // Track if the original task had time (not just midnight)
+  const [hasOriginalTime, setHasOriginalTime] = useState<boolean>(false);
+  
+  // Extract time from date or initialize empty
+  // Only extract time if the original task had time explicitly set
+  const getTimeFromDate = (dateValue: Date | undefined, hasTime: boolean): string => {
+    if (!dateValue) return "";
+    // Only extract time if the original task had time information
+    // If the original task didn't have time, return empty string (even if date is at midnight)
+    if (!hasTime) {
+      return "";
+    }
+    // Use getHours() and getMinutes() which return local time
+    const hours = dateValue.getHours().toString().padStart(2, "0");
+    const minutes = dateValue.getMinutes().toString().padStart(2, "0");
+    return `${hours}:${minutes}`;
+  };
+  
+  const [dueTime, setDueTime] = useState<string>("");
+  
+  // Update time when date changes or task loads
+  useEffect(() => {
+    if (task?.due_date) {
+      // Check if the original due_date had time information
+      const hasTime = task.due_date.includes("T") && task.due_date.includes(":") && 
+                      task.due_date.match(/\d{2}:\d{2}/);
+      setHasOriginalTime(hasTime || false);
+    }
+  }, [task?.due_date]);
+  
+  // Update time when date changes
+  useEffect(() => {
+    // Only update if date is actually loaded
+    if (date) {
+      setDueTime(getTimeFromDate(date, hasOriginalTime));
+    } else {
+      setDueTime("");
+    }
+  }, [date, hasOriginalTime]);
+
+  // Combine date and time into a single Date object for saving
+  const getCombinedDateTime = (): Date | undefined => {
+    if (!date) return undefined;
+    
+    // Always create a fresh date using local time components to avoid timezone issues
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
+    
+    if (dueTime) {
+      const [hours, minutes] = dueTime.split(":").map(Number);
+      return new Date(year, month, day, hours, minutes, 0);
+    }
+    
+    // If no time, create at midnight local time
+    return new Date(year, month, day, 0, 0, 0);
+  };
+
+  const handleDateSelect = (selectedDate: Date | undefined) => {
+    if (!selectedDate) {
+      setDate(undefined);
+      setDueTime("");
+      return;
+    }
+    
+    // Preserve the existing time when changing the date
+    // Create a new date with the selected date but keep the current time
+    const currentTime = dueTime ? dueTime.split(":").map(Number) : [0, 0];
+    const newDate = new Date(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      selectedDate.getDate(),
+      currentTime[0],
+      currentTime[1],
+      0
+    );
+    
+    setDate(newDate);
+    
+    // If today is selected and there's a time, validate it's not in the past
+    if (isToday(selectedDate) && dueTime) {
+      const [hours, minutes] = currentTime;
+      const now = new Date();
+      const selectedDateTime = new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        selectedDate.getDate(),
+        hours,
+        minutes,
+        0
+      );
+      
+      if (selectedDateTime < now) {
+        // Clear invalid past time
+        setDueTime("");
+        // Update date to midnight since time was cleared
+        setDate(new Date(
+          selectedDate.getFullYear(),
+          selectedDate.getMonth(),
+          selectedDate.getDate(),
+          0, 0, 0
+        ));
+      }
+    }
+  };
+
+  // Check if a date is disabled (past dates)
+  const isDateDisabled = (date: Date) => {
+    return isPast(date) && !isToday(date);
+  };
+
+  // Get minimum time for today (current time + 1 minute to avoid selecting past times)
+  const getMinTime = (): string => {
+    if (!date || !isToday(date)) {
+      return ""; // No minimum if not today
+    }
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, "0");
+    const minutes = (now.getMinutes() + 1).toString().padStart(2, "0");
+    return `${hours}:${minutes}`;
+  };
+
+  // Validate time change
+  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTime = e.target.value;
+    if (!date || !newTime) {
+      setDueTime(newTime);
+      return;
+    }
+
+    // If today, validate time is not in the past
+    if (isToday(date)) {
+      const [hours, minutes] = newTime.split(":").map(Number);
+      const selectedDateTime = new Date(date);
+      selectedDateTime.setHours(hours, minutes, 0, 0);
+      const now = new Date();
+
+      if (selectedDateTime < now) {
+        // Don't allow past time
+        return;
+      }
+    }
+
+    setDueTime(newTime);
+  };
 
   const handleImageUpload = async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -93,6 +232,11 @@ function TaskForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Combine date and time before saving
+      const combinedDateTime = getCombinedDateTime();
+      if (combinedDateTime) {
+        setDate(combinedDateTime);
+      }
       await saveTask();
       toast({
         title: "✅ Task Updated",
@@ -285,33 +429,13 @@ function TaskForm() {
               </Label>
             </div>
 
-            <div className="grid gap-6 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="label">Label</Label>
-                <Select
-                  value={task.label || ""}
-                  onValueChange={(value) =>
-                    updateTask({ label: value as Task["label"] })
-                  }
-                >
-                  <SelectTrigger id="label" className="w-full transition-all">
-                    <SelectValue placeholder="Select a label" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {labels.map((label) => (
-                      <SelectItem key={label.value} value={label.value}>
-                        {label.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Due Date</Label>
+            <div className="space-y-2">
+              <Label>Due Date & Time</Label>
+              <div className="grid gap-3 sm:grid-cols-2">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
+                      type="button"
                       variant="outline"
                       className={cn(
                         "w-full justify-start text-left font-normal transition-all",
@@ -326,12 +450,55 @@ function TaskForm() {
                     <Calendar
                       mode="single"
                       selected={date}
-                      onSelect={setDate}
+                      onSelect={handleDateSelect}
+                      disabled={isDateDisabled}
                       initialFocus
                     />
                   </PopoverContent>
                 </Popover>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={!date}
+                      className={cn(
+                        "w-full justify-start text-left font-normal transition-all",
+                        !dueTime && "text-muted-foreground"
+                      )}
+                    >
+                      <Clock className="mr-2 h-4 w-4" />
+                      {dueTime ? (
+                        format(new Date(`2000-01-01T${dueTime}`), "h:mm a")
+                      ) : (
+                        <span>Pick a time (optional)</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <div className="p-4">
+                      <Input
+                        type="time"
+                        value={dueTime}
+                        onChange={handleTimeChange}
+                        disabled={!date}
+                        min={getMinTime()}
+                        className="transition-all text-base"
+                      />
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
+              {date && dueTime && (
+                <p className="text-xs text-muted-foreground">
+                  Due: {format(getCombinedDateTime()!, "MMM d, yyyy 'at' h:mm a")}
+                </p>
+              )}
+              {date && isToday(date) && !dueTime && (
+                <p className="text-xs text-muted-foreground">
+                  Select a time in the future
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
