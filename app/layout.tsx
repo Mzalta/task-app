@@ -4,11 +4,14 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { Card, CardContent } from "@/components/ui/card";
 import { RouteGuard } from "@/components/RouteGuard";
 import { Toaster } from "@/components/ui/toaster";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ 
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 export default function RootLayout({
   children,
@@ -16,18 +19,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body
-        className={`${inter.className} bg-gradient-to-br from-blue-600 to-violet-600 min-h-screen`}
-      >
+    <html lang="en" className={inter.variable}>
+      <body className="min-h-screen bg-gradient-to-b from-gray-50 to-white antialiased">
         <div className="flex flex-col min-h-screen">
           <Header />
-          <main className="flex-grow container mx-auto px-4 py-8">
-            <Card className="w-full max-w-2xl mx-auto">
-              <CardContent className="p-6">
-                <RouteGuard>{children}</RouteGuard>
-              </CardContent>
-            </Card>
+          <main className="flex-grow">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12 max-w-7xl">
+              <RouteGuard>{children}</RouteGuard>
+            </div>
           </main>
           <Footer />
         </div>

@@ -37,6 +37,7 @@ import { useTaskManager } from "@/hooks/useTaskManager";
 import { Task } from "@/types/models";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/hooks/use-toast";
+import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
 import { useDropzone } from "react-dropzone";
 
@@ -126,25 +127,26 @@ function TaskForm() {
 
   const renderImageDisplay = () => {
     return (
-      <div className="space-y-2">
-        <div className="relative w-40 h-40 rounded-lg overflow-hidden">
+      <div className="space-y-3">
+        <div className="relative w-full max-w-xs h-48 rounded-lg overflow-hidden border border-border shadow-sm transition-all hover:shadow-md">
           <Image
             src={`${
               process.env.NEXT_PUBLIC_SUPABASE_URL
             }/storage/v1/object/public/task-attachments/${task!.image_url}`}
             alt="Task attachment"
             fill
-            sizes="160px"
+            sizes="320px"
             className="object-cover"
           />
         </div>
         <Button
           type="button"
           size="sm"
-          variant="ghost"
+          variant="outline"
           onClick={handleRemoveImage}
+          className="transition-all hover:bg-destructive/10 hover:text-destructive hover:border-destructive"
         >
-          <Trash2 className="mr-1 h-4 w-4" />
+          <Trash2 className="mr-2 h-4 w-4" />
           Remove Image
         </Button>
       </div>
@@ -156,20 +158,29 @@ function TaskForm() {
       <div
         {...getRootProps()}
         className={cn(
-          "border-2 border-dashed rounded-md p-6 text-center cursor-pointer",
-          isDragActive ? "border-blue-500" : "border-gray-300"
+          "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all",
+          isDragActive 
+            ? "border-primary bg-primary/5" 
+            : "border-border hover:border-primary/50 hover:bg-muted/30"
         )}
       >
         <input {...getInputProps()} />
-        <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+        <Upload className={cn(
+          "w-10 h-10 mx-auto mb-3 transition-colors",
+          isDragActive ? "text-primary" : "text-muted-foreground"
+        )} />
         {isDragActive ? (
-          <p className="text-sm text-blue-500">Drop the image here...</p>
+          <p className="text-sm font-medium text-primary">
+            Drop the image here...
+          </p>
         ) : (
-          <div className="space-y-1">
-            <p className="text-sm text-gray-500">
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">
               Drag and drop an image here, or click to select
             </p>
-            <p className="text-xs text-gray-400">Supports: JPEG, PNG</p>
+            <p className="text-xs text-muted-foreground">
+              Supports: JPEG, PNG (Max 5MB)
+            </p>
           </div>
         )}
       </div>
@@ -178,106 +189,182 @@ function TaskForm() {
 
   if (error) {
     return (
-      <div className="text-center py-8">
-        <AlertOctagon className="mx-auto h-8 w-8 text-gray-500 mb-2" />
-        <div className="text-gray-700 text-sm">{error}</div>
+      <Card className="max-w-3xl mx-auto border-destructive/50">
+        <CardContent className="p-12 text-center">
+          <div className="rounded-full bg-destructive/10 p-4 mb-4 inline-flex">
+            <AlertOctagon className="h-8 w-8 text-destructive" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">
+            Error loading task
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">{error}</p>
+          <Button variant="outline" asChild>
+            <Link href="/dashboard">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Dashboard
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!task) {
+    return (
+      <div className="max-w-3xl mx-auto space-y-6 animate-pulse">
+        <div className="h-10 bg-muted rounded-lg w-1/3"></div>
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <div className="h-10 bg-muted rounded-lg"></div>
+            <div className="h-24 bg-muted rounded-lg"></div>
+            <div className="h-10 bg-muted rounded-lg w-1/2"></div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  if (!task) return <div>Loading...</div>;
-
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6">Task Details</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid w-full items-center gap-1.5">
-          <Label>Title</Label>
-          <Input
-            value={task.title || ""}
-            onChange={(e) => updateTask({ title: e.target.value })}
-          />
-        </div>
-        <div className="grid w-full items-center gap-1.5">
-          <Label>Description</Label>
-          <Textarea
-            value={task.description || ""}
-            onChange={(e) => updateTask({ description: e.target.value })}
-          />
-        </div>
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            checked={task.completed || false}
-            onCheckedChange={(checked) =>
-              updateTask({ completed: checked as boolean })
-            }
-          />
-          <Label>Completed</Label>
-        </div>
-        <div className="grid w-full items-center gap-1.5">
-          <Label>Label</Label>
-          <Select
-            value={task.label || ""}
-            onValueChange={(value) =>
-              updateTask({ label: value as Task["label"] })
-            }
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a label" />
-            </SelectTrigger>
-            <SelectContent>
-              {labels.map((label) => (
-                <SelectItem key={label.value} value={label.value}>
-                  {label.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="grid w-full items-center gap-1.5">
-          <Label>Due Date</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant={"outline"}
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !date && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {date ? format(date, "PPP") : <span>Pick a date</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={setDate}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-        <div className="grid w-full items-center gap-1.5">
-          <Label>Attach Image</Label>
-          <div className="space-y-2">
-            {task.image_url ? renderImageDisplay() : renderImageUpload()}
-          </div>
-        </div>
-        <div className="flex space-x-2 w-full pt-4">
-          <Link href="/dashboard" className="flex-1">
-            <Button type="button" variant="outline" className="w-full">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Dashboard
-            </Button>
-          </Link>
-          <Button type="submit" className="flex-1">
-            <Save className="mr-2 h-4 w-4" />
-            Save Changes
+    <div className="max-w-3xl mx-auto space-y-6 animate-in">
+      <div className="flex items-center gap-4">
+        <Link href="/dashboard">
+          <Button variant="ghost" size="icon" className="h-9 w-9">
+            <ArrowLeft className="h-4 w-4" />
+            <span className="sr-only">Back</span>
           </Button>
+        </Link>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Task Details
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Edit and manage your task information
+          </p>
         </div>
-      </form>
+      </div>
+
+      <Card className="transition-all hover:shadow-md">
+        <CardContent className="p-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                value={task.title || ""}
+                onChange={(e) => updateTask({ title: e.target.value })}
+                placeholder="Enter task title"
+                className="transition-all"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={task.description || ""}
+                onChange={(e) => updateTask({ description: e.target.value })}
+                placeholder="Enter task description"
+                rows={4}
+                className="transition-all resize-none"
+              />
+            </div>
+
+            <div className="flex items-center space-x-2 rounded-md border p-4 bg-muted/30">
+              <Checkbox
+                id="completed"
+                checked={task.completed || false}
+                onCheckedChange={(checked) =>
+                  updateTask({ completed: checked as boolean })
+                }
+              />
+              <Label
+                htmlFor="completed"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                Mark as completed
+              </Label>
+            </div>
+
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="label">Label</Label>
+                <Select
+                  value={task.label || ""}
+                  onValueChange={(value) =>
+                    updateTask({ label: value as Task["label"] })
+                  }
+                >
+                  <SelectTrigger id="label" className="w-full transition-all">
+                    <SelectValue placeholder="Select a label" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {labels.map((label) => (
+                      <SelectItem key={label.value} value={label.value}>
+                        {label.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Due Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal transition-all",
+                        !date && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {date ? format(date, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={date}
+                      onSelect={setDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Attach Image</Label>
+              <div className="space-y-3">
+                {task.image_url ? renderImageDisplay() : renderImageUpload()}
+              </div>
+            </div>
+
+            <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row sm:justify-end">
+              <Button 
+                type="button" 
+                variant="outline" 
+                asChild
+                className="w-full sm:w-auto transition-all hover:shadow-sm"
+              >
+                <Link href="/dashboard">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Cancel
+                </Link>
+              </Button>
+              <Button 
+                type="submit" 
+                className="w-full sm:w-auto transition-all hover:shadow-md"
+                disabled={uploading}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                {uploading ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

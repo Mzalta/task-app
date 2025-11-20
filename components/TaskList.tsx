@@ -16,28 +16,42 @@ interface TaskListProps {
 
 const TaskList = ({ tasks, onDelete, onToggleComplete }: TaskListProps) => {
   return (
-    <Table>
-      <TableHeader>
-        <TableRow className="hover:bg-transparent">
-          <TableHead className="w-[50px] py-2"></TableHead>
-          <TableHead className="w-[60px] py-2">Image</TableHead>
-          <TableHead className="py-2">Title</TableHead>
-          <TableHead className="w-[100px] py-2">Label</TableHead>
-          <TableHead className="w-[120px] py-2">Due Date</TableHead>
-          <TableHead className="w-[100px] text-right py-2">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {tasks.map((task) => (
-          <TaskRow
-            key={task.task_id}
-            task={task}
-            onDelete={onDelete}
-            onToggleComplete={onToggleComplete}
-          />
-        ))}
-      </TableBody>
-    </Table>
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent border-b">
+            <TableHead className="w-[50px] py-4 font-semibold text-muted-foreground">
+              Status
+            </TableHead>
+            <TableHead className="w-[100px] py-4 font-semibold text-muted-foreground hidden sm:table-cell">
+              Image
+            </TableHead>
+            <TableHead className="py-4 font-semibold text-muted-foreground">
+              Title
+            </TableHead>
+            <TableHead className="w-[120px] py-4 font-semibold text-muted-foreground hidden md:table-cell">
+              Label
+            </TableHead>
+            <TableHead className="w-[140px] py-4 font-semibold text-muted-foreground hidden lg:table-cell">
+              Due Date
+            </TableHead>
+            <TableHead className="w-[120px] text-right py-4 font-semibold text-muted-foreground">
+              Actions
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {tasks.map((task) => (
+            <TaskRow
+              key={task.task_id}
+              task={task}
+              onDelete={onDelete}
+              onToggleComplete={onToggleComplete}
+            />
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 };
 
