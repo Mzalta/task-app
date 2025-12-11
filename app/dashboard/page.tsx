@@ -48,7 +48,7 @@ export default function Dashboard() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("No session found");
 
-      // Helper function to format date in local time without timezone conversion
+      // Helper function to format date in local time with timezone offset
       const formatLocalDateTime = (date: Date): string => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -56,7 +56,15 @@ export default function Dashboard() {
         const hours = String(date.getHours()).padStart(2, "0");
         const minutes = String(date.getMinutes()).padStart(2, "0");
         const seconds = String(date.getSeconds()).padStart(2, "0");
-        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+        
+        // Get timezone offset in minutes and convert to HH:MM format
+        const offsetMinutes = date.getTimezoneOffset();
+        const offsetHours = Math.floor(Math.abs(offsetMinutes) / 60);
+        const offsetMins = Math.abs(offsetMinutes) % 60;
+        const offsetSign = offsetMinutes <= 0 ? "+" : "-";
+        const offsetString = `${offsetSign}${String(offsetHours).padStart(2, "0")}:${String(offsetMins).padStart(2, "0")}`;
+        
+        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetString}`;
       };
 
       // Prepare updates
@@ -73,9 +81,15 @@ export default function Dashboard() {
         // Check if it has time information (not midnight)
         const hasTime = hours !== 0 || minutes !== 0 || dueDate.getSeconds() !== 0;
         if (hasTime) {
-          // Save datetime in local time format (no timezone conversion)
-          // Format explicitly using the extracted components
-          updates.due_date = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`;
+          // Save datetime with local timezone offset so Supabase knows it's local time
+          // Get timezone offset in minutes and convert to HH:MM format
+          const offsetMinutes = dueDate.getTimezoneOffset();
+          const offsetHours = Math.floor(Math.abs(offsetMinutes) / 60);
+          const offsetMins = Math.abs(offsetMinutes) % 60;
+          const offsetSign = offsetMinutes <= 0 ? "+" : "-";
+          const offsetString = `${offsetSign}${String(offsetHours).padStart(2, "0")}:${String(offsetMins).padStart(2, "0")}`;
+          
+          updates.due_date = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00${offsetString}`;
         } else {
           // Save just the date part
           updates.due_date = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;

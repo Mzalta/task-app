@@ -50,11 +50,22 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
         if (task.due_date) {
           // Check if it's a datetime string (contains 'T' and ':')
           if (task.due_date.includes("T") && task.due_date.includes(":")) {
-            // Parse explicitly as local time by extracting components
-            // Format: YYYY-MM-DDTHH:mm:ss
-            const [datePart, timePart] = task.due_date.split("T");
+            // Always parse as local time by extracting components, ignoring timezone
+            // This ensures the time displayed matches what the user entered
+            // Format: YYYY-MM-DDTHH:mm:ss or YYYY-MM-DDTHH:mm:ssZ or YYYY-MM-DDTHH:mm:ss+00:00
+            let datePart: string;
+            let timePart: string;
+            
+            // Remove timezone indicator if present (Z, +00:00, -05:00, etc.)
+            const cleanString = task.due_date.replace(/Z$|[+-]\d{2}:\d{2}$/, "");
+            [datePart, timePart] = cleanString.split("T");
+            
             const [year, month, day] = datePart.split("-").map(Number);
-            const [hours, minutes, seconds = 0] = timePart.split(":").map(Number);
+            // Handle time part that might have seconds or milliseconds
+            const timeComponents = timePart.split(":");
+            const hours = Number(timeComponents[0]);
+            const minutes = Number(timeComponents[1]);
+            const seconds = timeComponents[2] ? Number(timeComponents[2].split(".")[0]) : 0;
             
             // Create date using local time components (no timezone conversion)
             const parsedDate = new Date(year, month - 1, day, hours, minutes, seconds || 0);
@@ -89,7 +100,7 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
     setTask((prev) => (prev ? { ...prev, ...updates } : null));
   };
 
-  // Helper function to format date in local time without timezone conversion
+  // Helper function to format date in local time with timezone offset
   const formatLocalDateTime = (date: Date): string => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -97,7 +108,15 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
     const hours = String(date.getHours()).padStart(2, "0");
     const minutes = String(date.getMinutes()).padStart(2, "0");
     const seconds = String(date.getSeconds()).padStart(2, "0");
-    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+    
+    // Get timezone offset in minutes and convert to HH:MM format
+    const offsetMinutes = date.getTimezoneOffset();
+    const offsetHours = Math.floor(Math.abs(offsetMinutes) / 60);
+    const offsetMins = Math.abs(offsetMinutes) % 60;
+    const offsetSign = offsetMinutes <= 0 ? "+" : "-";
+    const offsetString = `${offsetSign}${String(offsetHours).padStart(2, "0")}:${String(offsetMins).padStart(2, "0")}`;
+    
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetString}`;
   };
 
   const saveTask = async (taskToSave?: Task) => {
@@ -111,7 +130,7 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
         // Check if the date has time information (not midnight or has been explicitly set with time)
         const hasTime = date.getHours() !== 0 || date.getMinutes() !== 0 || date.getSeconds() !== 0;
         if (hasTime) {
-          // Save datetime in local time format (no timezone conversion)
+          // Save datetime with local timezone offset so Supabase knows it's local time
           dueDateValue = formatLocalDateTime(date);
         } else {
           // Save just the date part

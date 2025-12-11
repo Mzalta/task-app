@@ -1,5 +1,3 @@
-"use client";
-
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
@@ -20,7 +18,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.variable}>
-      <body className="min-h-screen bg-gradient-to-b from-gray-50 to-white antialiased">
+      <body 
+        className="min-h-screen bg-gradient-to-b from-gray-50 to-white antialiased"
+        suppressHydrationWarning
+      >
         <div className="flex flex-col min-h-screen">
           <Header />
           <main className="flex-grow">

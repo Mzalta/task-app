@@ -24,21 +24,25 @@ const TaskRow = ({ task, onDelete, onToggleComplete }: TaskRowProps) => {
                       dateString.match(/\d{2}:\d{2}/);
       
       if (hasTime) {
-        // Parse explicitly as local time by extracting components
-        let date: Date;
-        if (dateString.includes("Z") || dateString.match(/[+-]\d{2}:\d{2}$/)) {
-          // Has timezone indicator (UTC or offset), parse as ISO
-          date = new Date(dateString);
-        } else {
-          // No timezone, treat as local time - parse explicitly
-          // Format: YYYY-MM-DDTHH:mm:ss
-          const [datePart, timePart] = dateString.split("T");
-          const [year, month, day] = datePart.split("-").map(Number);
-          const [hours, minutes, seconds = 0] = timePart.split(":").map(Number);
-          
-          // Create date using local time components (no timezone conversion)
-          date = new Date(year, month - 1, day, hours, minutes, seconds || 0);
-        }
+        // Always parse as local time by extracting components, ignoring timezone
+        // This ensures the time displayed matches what the user entered
+        // Format: YYYY-MM-DDTHH:mm:ss or YYYY-MM-DDTHH:mm:ssZ or YYYY-MM-DDTHH:mm:ss+00:00
+        let datePart: string;
+        let timePart: string;
+        
+        // Remove timezone indicator if present (Z, +00:00, -05:00, etc.)
+        const cleanString = dateString.replace(/Z$|[+-]\d{2}:\d{2}$/, "");
+        [datePart, timePart] = cleanString.split("T");
+        
+        const [year, month, day] = datePart.split("-").map(Number);
+        // Handle time part that might have seconds or milliseconds
+        const timeComponents = timePart.split(":");
+        const hours = Number(timeComponents[0]);
+        const minutes = Number(timeComponents[1]);
+        const seconds = timeComponents[2] ? Number(timeComponents[2].split(".")[0]) : 0;
+        
+        // Create date using local time components (no timezone conversion)
+        const date = new Date(year, month - 1, day, hours, minutes, seconds || 0);
         
         // Format with date and time
         return format(date, "MMM d, yyyy 'at' h:mm a");
