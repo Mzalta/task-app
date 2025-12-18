@@ -14,13 +14,21 @@ import { format, startOfToday, isToday, isPast } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useDropzone } from "react-dropzone";
 import Image from "next/image";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface CreateTaskFormProps {
   onSubmit: (
     title: string,
     description: string,
     dueDate: Date | undefined,
-    imageFile: File | null
+    imageFile: File | null,
+    priority: string
   ) => Promise<void>;
 }
 
@@ -29,6 +37,7 @@ export function CreateTaskForm({ onSubmit }: CreateTaskFormProps) {
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [dueTime, setDueTime] = useState<string>("");
+  const [priority, setPriority] = useState<string>("Medium");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -154,12 +163,13 @@ export function CreateTaskForm({ onSubmit }: CreateTaskFormProps) {
     try {
       // Get combined datetime with both date and time
       const combinedDateTime = getCombinedDateTime();
-      await onSubmit(title, description, combinedDateTime, imageFile);
+      await onSubmit(title, description, combinedDateTime, imageFile, priority);
       // Reset form
       setTitle("");
       setDescription("");
       setDueDate(undefined);
       setDueTime("");
+      setPriority("Medium");
       setImageFile(null);
       setImagePreview(null);
     } catch (err) {
@@ -259,6 +269,24 @@ export function CreateTaskForm({ onSubmit }: CreateTaskFormProps) {
           disabled={isSubmitting}
           className="transition-all resize-none"
         />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Priority</Label>
+        <Select
+          value={priority}
+          onValueChange={setPriority}
+          disabled={isSubmitting}
+        >
+          <SelectTrigger className="transition-all">
+            <SelectValue placeholder="Select priority" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Low">Low</SelectItem>
+            <SelectItem value="Medium">Medium</SelectItem>
+            <SelectItem value="High">High</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-2">

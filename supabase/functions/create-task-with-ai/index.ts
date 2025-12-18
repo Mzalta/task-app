@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { title, description } = await req.json();
+    const { title, description, priority } = await req.json();
 
     console.log("🔄 Creating task with AI suggestions...");
     const authHeader = req.headers.get("Authorization");
@@ -44,6 +44,12 @@ Deno.serve(async (req) => {
     } = await supabaseClient.auth.getUser();
     if (!user) throw new Error("No user found");
 
+    // Validate priority if provided
+    const validPriorities = ["Low", "Medium", "High"];
+    const taskPriority = priority && validPriorities.includes(priority) 
+      ? priority 
+      : "Medium";
+
     // Create the task
     const { data, error } = await supabaseClient
       .from("tasks")
@@ -51,6 +57,7 @@ Deno.serve(async (req) => {
         title,
         description,
         completed: false,
+        priority: taskPriority,
         user_id: user.id,
       })
       .select()

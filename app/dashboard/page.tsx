@@ -33,11 +33,12 @@ export default function Dashboard() {
     title: string,
     description: string,
     dueDate: Date | undefined,
-    imageFile: File | null
+    imageFile: File | null,
+    priority: string
   ) => {
     try {
       // Create the task first (this calls the AI function)
-      const newTask = await createTask(title, description);
+      const newTask = await createTask(title, description, priority);
       
       const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,

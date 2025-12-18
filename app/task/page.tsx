@@ -23,6 +23,13 @@ import {
   AlertOctagon,
   Clock,
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { format, isPast, isToday } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
@@ -31,6 +38,7 @@ import { Task } from "@/types/models";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { useDropzone } from "react-dropzone";
 
@@ -77,8 +85,8 @@ function TaskForm() {
     if (task?.due_date) {
       // Check if the original due_date had time information
       const hasTime = task.due_date.includes("T") && task.due_date.includes(":") && 
-                      task.due_date.match(/\d{2}:\d{2}/);
-      setHasOriginalTime(hasTime || false);
+                      !!task.due_date.match(/\d{2}:\d{2}/);
+      setHasOriginalTime(hasTime);
     }
   }, [task?.due_date]);
   
@@ -369,7 +377,7 @@ function TaskForm() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 animate-in">
+      <div className="max-w-3xl mx-auto space-y-6 animate-in">
       <div className="flex items-center gap-4">
         <Link href="/dashboard">
           <Button variant="ghost" size="icon" className="h-9 w-9">
@@ -377,10 +385,25 @@ function TaskForm() {
             <span className="sr-only">Back</span>
           </Button>
         </Link>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Task Details
-          </h1>
+        <div className="flex-1">
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              Task Details
+            </h1>
+            {task.priority && (
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-sm",
+                  task.priority === "High" && "text-red-600 border-red-300",
+                  task.priority === "Medium" && "text-yellow-600 border-yellow-300",
+                  task.priority === "Low" && "text-green-600 border-green-300"
+                )}
+              >
+                {task.priority} Priority
+              </Badge>
+            )}
+          </div>
           <p className="mt-1 text-sm text-muted-foreground">
             Edit and manage your task information
           </p>
@@ -427,6 +450,23 @@ function TaskForm() {
               >
                 Mark as completed
               </Label>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priority</Label>
+              <Select
+                value={task.priority || "Medium"}
+                onValueChange={(value) => updateTask({ priority: value })}
+              >
+                <SelectTrigger id="priority" className="transition-all">
+                  <SelectValue placeholder="Select priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Low">Low</SelectItem>
+                  <SelectItem value="Medium">Medium</SelectItem>
+                  <SelectItem value="High">High</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">

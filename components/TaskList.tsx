@@ -32,6 +32,9 @@ const TaskList = ({ tasks, onDelete, onToggleComplete }: TaskListProps) => {
             <TableHead className="w-[120px] py-4 font-semibold text-muted-foreground hidden md:table-cell">
               Label
             </TableHead>
+            <TableHead className="w-[100px] py-4 font-semibold text-muted-foreground hidden md:table-cell">
+              Priority
+            </TableHead>
             <TableHead className="w-[140px] py-4 font-semibold text-muted-foreground hidden lg:table-cell">
               Due Date
             </TableHead>

@@ -223,7 +223,20 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setTasks(data || []);
+      
+      // Sort by priority (High → Medium → Low) as secondary sort
+      const priorityOrder = { High: 3, Medium: 2, Low: 1 };
+      const sortedTasks = (data || []).sort((a, b) => {
+        const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] || 0;
+        const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] || 0;
+        if (bPriority !== aPriority) {
+          return bPriority - aPriority; // High priority first
+        }
+        // If priorities are equal, maintain created_at order (newest first)
+        return 0;
+      });
+      
+      setTasks(sortedTasks);
       setError(null);
     } catch (error: any) {
       console.error("Error fetching tasks:", error);
@@ -233,7 +246,7 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
     }
   };
 
-  const createTask = async (title: string, description: string) => {
+  const createTask = async (title: string, description: string, priority: string = "Medium") => {
     try {
       const {
         data: { session },
@@ -245,7 +258,7 @@ export function useTaskManager(taskId?: string): UseTaskManagerReturn {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session!.access_token}`,
         },
-        body: JSON.stringify({ title, description }),
+        body: JSON.stringify({ title, description, priority }),
       });
 
       if (!response.ok) {

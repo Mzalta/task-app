@@ -59,6 +59,20 @@ const TaskRow = ({ task, onDelete, onToggleComplete }: TaskRowProps) => {
 
   const isCompleted = task.completed || false;
 
+  const getPriorityStyle = (priority: string | null | undefined) => {
+    if (!priority) return "text-muted-foreground";
+    switch (priority) {
+      case "High":
+        return "text-red-600 font-semibold";
+      case "Medium":
+        return "text-yellow-600 font-medium";
+      case "Low":
+        return "text-green-600";
+      default:
+        return "text-muted-foreground";
+    }
+  };
+
   return (
     <TableRow 
       className={cn(
@@ -125,6 +139,11 @@ const TaskRow = ({ task, onDelete, onToggleComplete }: TaskRowProps) => {
             {task.label}
           </Badge>
         )}
+      </TableCell>
+      <TableCell className="py-4 hidden md:table-cell">
+        <span className={cn("text-sm whitespace-nowrap", getPriorityStyle(task.priority))}>
+          {task.priority || "Medium"}
+        </span>
       </TableCell>
       <TableCell className="py-4 hidden lg:table-cell">
         {task.due_date ? (

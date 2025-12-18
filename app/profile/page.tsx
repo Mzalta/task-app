@@ -23,11 +23,12 @@ export default function Profile() {
     );
   }
 
-  const progressPercentage = user.tasks_limit > 0 
+  const progressPercentage = user.tasks_limit && user.tasks_limit > 0 
     ? Math.round((user.tasks_created / user.tasks_limit) * 100)
     : 0;
 
-  const getPlanBadgeVariant = (plan: string) => {
+  const getPlanBadgeVariant = (plan: string | null) => {
+    if (!plan) return "secondary";
     switch (plan.toLowerCase()) {
       case "pro":
         return "default";
@@ -134,7 +135,7 @@ export default function Profile() {
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                {user.tasks_limit - user.tasks_created} tasks remaining
+                {user.tasks_limit ? user.tasks_limit - user.tasks_created : 0} tasks remaining
               </p>
             </div>
           </CardContent>
