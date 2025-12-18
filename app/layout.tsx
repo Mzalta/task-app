@@ -19,15 +19,13 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body 
-        className="min-h-screen bg-gradient-to-b from-gray-50 to-white antialiased"
+        className="min-h-screen bg-background antialiased"
         suppressHydrationWarning
       >
         <div className="flex flex-col min-h-screen">
           <Header />
           <main className="flex-grow">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12 max-w-7xl">
-              <RouteGuard>{children}</RouteGuard>
-            </div>
+            <RouteGuard>{children}</RouteGuard>
           </main>
           <Footer />
         </div>
