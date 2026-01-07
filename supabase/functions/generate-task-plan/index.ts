@@ -180,7 +180,13 @@ Prioritize urgency and impact.
 Do not over-schedule.
 Return ONLY valid JSON.
 
-IMPORTANT: Only use the "due_date" field to determine when tasks are due. Do NOT infer due dates from task titles or descriptions. Only use the explicit due_date values provided.
+IMPORTANT CONTEXT ABOUT DATES:
+- The "due_date" field represents when a task is scheduled to happen or when it needs to be completed
+- For some tasks (like flights, appointments, events), the date represents when something will occur, not a deadline
+- For other tasks, the date represents a deadline when something must be completed
+- Use the task title and description to understand the context - is this an event/appointment (scheduled time) or a deadline (due time)?
+- Only use the explicit due_date values provided - do NOT infer dates from task titles or descriptions
+- When a task has a specific time (like "flight at 12pm"), understand that this is when the event happens, not when it's "due"
 
 Each item must include:
 - task_id
@@ -207,7 +213,7 @@ Return a JSON object with a "plan" array containing objects with this exact stru
             {
               role: "system",
               content:
-                "You are a productivity assistant. Always return valid JSON only, no markdown, no commentary. Return a JSON object with a 'plan' array. IMPORTANT: Only use the due_date field to determine when tasks are due. Never infer due dates from task titles or descriptions.",
+                "You are a productivity assistant. Always return valid JSON only, no markdown, no commentary. Return a JSON object with a 'plan' array. IMPORTANT: The due_date field can represent either a scheduled time (for events/appointments) or a deadline (for tasks to complete). Use task context to understand which. Only use explicit due_date values - never infer dates from titles or descriptions.",
             },
             { role: "user", content: prompt },
           ],
@@ -253,7 +259,7 @@ Return a JSON object with a "plan" array containing objects with this exact stru
       plan = sortedTasks.map((task, index) => ({
         task_id: task.task_id,
         suggested_order: index + 1,
-        short_reason: `Task ${index + 1} based on due date and priority`,
+        short_reason: `Task ${index + 1} based on scheduled date/time and priority`,
       }));
     }
 

@@ -253,7 +253,7 @@ function TaskForm() {
     if (!date) {
       toast({
         title: "❌ Validation Error",
-        description: "Due date is required",
+        description: "Date is required",
         variant: "destructive",
       });
       return;
@@ -491,7 +491,12 @@ function TaskForm() {
             </div>
 
             <div className="space-y-2">
-              <Label>Due Date & Time <span className="text-destructive">*</span></Label>
+              <div>
+                <Label>Date & Time <span className="text-destructive">*</span></Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  When this task is scheduled or due (e.g., appointment time, event date, or deadline)
+                </p>
+              </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Popover>
                   <PopoverTrigger asChild>
@@ -552,7 +557,7 @@ function TaskForm() {
               </div>
               {date && dueTime && (
                 <p className="text-xs text-muted-foreground">
-                  Due: {format(getCombinedDateTime()!, "MMM d, yyyy 'at' h:mm a")}
+                  Scheduled: {format(getCombinedDateTime()!, "MMM d, yyyy 'at' h:mm a")}
                 </p>
               )}
               {date && isToday(date) && !dueTime && (

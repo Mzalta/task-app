@@ -167,7 +167,7 @@ export function CreateTaskForm({ onSubmit }: CreateTaskFormProps) {
     }
     
     if (!dueDate) {
-      setError("Due date is required");
+      setError("Date is required");
       return;
     }
     
@@ -302,7 +302,12 @@ export function CreateTaskForm({ onSubmit }: CreateTaskFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label>Due Date & Time <span className="text-destructive">*</span></Label>
+        <div>
+          <Label>Date & Time <span className="text-destructive">*</span></Label>
+          <p className="text-xs text-muted-foreground mt-1">
+            When this task is scheduled or due (e.g., appointment time, event date, or deadline)
+          </p>
+        </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <Popover>
             <PopoverTrigger asChild>
@@ -364,7 +369,7 @@ export function CreateTaskForm({ onSubmit }: CreateTaskFormProps) {
         </div>
         {dueDate && dueTime && (
           <p className="text-xs text-muted-foreground">
-            Due: {format(getCombinedDateTime()!, "MMM d, yyyy 'at' h:mm a")}
+            Scheduled: {format(getCombinedDateTime()!, "MMM d, yyyy 'at' h:mm a")}
           </p>
         )}
         {dueDate && isToday(dueDate) && !dueTime && (

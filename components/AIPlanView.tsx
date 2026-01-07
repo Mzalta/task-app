@@ -37,7 +37,7 @@ export function AIPlanView({
   error,
 }: AIPlanViewProps) {
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return "No due date";
+    if (!dateString) return "No date set";
     try {
       const hasTime = dateString.includes("T") && dateString.includes(":");
       let date: Date;
