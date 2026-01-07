@@ -21,6 +21,7 @@ import { Task } from "@/types/models";
 import { cn } from "@/lib/utils";
 import { isToday, isPast, isTomorrow } from "date-fns";
 import { AIPlanView } from "@/components/AIPlanView";
+import { WeeklySummary } from "@/components/WeeklySummary";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -464,6 +465,11 @@ export default function Dashboard() {
                     Plan My Week
                   </Button>
                 </div>
+              </div>
+
+              {/* Weekly Summary */}
+              <div className="mb-6">
+                <WeeklySummary />
               </div>
 
               {/* Task List */}

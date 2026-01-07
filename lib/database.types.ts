@@ -118,6 +118,41 @@ export type Database = {
           },
         ]
       }
+      weekly_summaries: {
+        Row: {
+          summary_id: string
+          user_id: string
+          week_start: string
+          week_end: string
+          summary_text: string
+          created_at: string | null
+        }
+        Insert: {
+          summary_id?: string
+          user_id: string
+          week_start: string
+          week_end: string
+          summary_text: string
+          created_at?: string | null
+        }
+        Update: {
+          summary_id?: string
+          user_id?: string
+          week_start?: string
+          week_end?: string
+          summary_text?: string
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_summaries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
