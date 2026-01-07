@@ -11,6 +11,8 @@ interface WeeklyStats {
   completionRate: number;
   missedDeadlines: number;
   tasksByCategory: Record<string, number>;
+  totalEstimatedMinutesCompleted: number | null;
+  totalEstimatedMinutesScheduled: number | null;
 }
 
 function getWeekBounds(): { weekStart: Date; weekEnd: Date } {
@@ -114,6 +116,31 @@ function computeStats(tasks: any[]): WeeklyStats {
     tasksByCategory[category] = (tasksByCategory[category] || 0) + 1;
   });
 
+  // Calculate estimated minutes statistics
+  let totalEstimatedMinutesCompleted: number | null = null;
+  let totalEstimatedMinutesScheduled: number | null = null;
+  
+  const completedWithEstimate = tasks.filter(
+    (task) => task.completed && task.estimated_minutes !== null && task.estimated_minutes !== undefined
+  );
+  const allWithEstimate = tasks.filter(
+    (task) => task.estimated_minutes !== null && task.estimated_minutes !== undefined
+  );
+  
+  if (completedWithEstimate.length > 0) {
+    totalEstimatedMinutesCompleted = completedWithEstimate.reduce(
+      (sum, task) => sum + (task.estimated_minutes || 0),
+      0
+    );
+  }
+  
+  if (allWithEstimate.length > 0) {
+    totalEstimatedMinutesScheduled = allWithEstimate.reduce(
+      (sum, task) => sum + (task.estimated_minutes || 0),
+      0
+    );
+  }
+
   return {
     totalTasks,
     completedTasks,
@@ -121,6 +148,8 @@ function computeStats(tasks: any[]): WeeklyStats {
     completionRate,
     missedDeadlines,
     tasksByCategory,
+    totalEstimatedMinutesCompleted,
+    totalEstimatedMinutesScheduled,
   };
 }
 

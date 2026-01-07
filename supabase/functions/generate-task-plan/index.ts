@@ -24,6 +24,7 @@ interface Task {
   due_date: string | null;
   priority: string;
   completed: boolean | null;
+  estimated_minutes: number | null;
 }
 
 interface PlanItem {
@@ -87,7 +88,7 @@ Deno.serve(async (req) => {
     // Fetch relevant tasks
     let query = supabaseClient
       .from("tasks")
-      .select("task_id, title, description, due_date, priority, completed")
+      .select("task_id, title, description, due_date, priority, completed, estimated_minutes")
       .eq("user_id", user.id)
       .eq("completed", false);
 
@@ -160,6 +161,7 @@ Deno.serve(async (req) => {
         description: task.description || "",
         due_date: task.due_date || "",
         priority: task.priority,
+        estimated_minutes: task.estimated_minutes,
       }))
     );
 
@@ -187,6 +189,11 @@ IMPORTANT CONTEXT ABOUT DATES:
 - Use the task title and description to understand the context - is this an event/appointment (scheduled time) or a deadline (due time)?
 - Only use the explicit due_date values provided - do NOT infer dates from task titles or descriptions
 - When a task has a specific time (like "flight at 12pm"), understand that this is when the event happens, not when it's "due"
+
+EFFORT ESTIMATES:
+- Each task may include an estimated_minutes value.
+- Use it to avoid overloading the plan.
+- If missing, make a reasonable assumption without mentioning it.
 
 Each item must include:
 - task_id

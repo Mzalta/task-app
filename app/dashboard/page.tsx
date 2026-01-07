@@ -165,7 +165,8 @@ export default function Dashboard() {
     description: string,
     dueDate: Date | undefined,
     imageFile: File | null,
-    priority: string
+    priority: string,
+    estimatedMinutes: number | null
   ) => {
     try {
       const newTask = await createTask(title, description, priority);
@@ -214,6 +215,13 @@ export default function Dashboard() {
           updates.due_date = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00${offsetString}`;
         } else {
           updates.due_date = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        }
+      }
+
+      if (estimatedMinutes !== null && estimatedMinutes !== undefined) {
+        // Validate estimated_minutes
+        if (estimatedMinutes > 0 && estimatedMinutes < 1440) {
+          updates.estimated_minutes = estimatedMinutes;
         }
       }
 

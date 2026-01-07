@@ -491,6 +491,33 @@ function TaskForm() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="estimatedMinutes">Estimated Effort (minutes)</Label>
+              <Input
+                id="estimatedMinutes"
+                type="number"
+                min="1"
+                max="1439"
+                value={task.estimated_minutes ?? ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === "") {
+                    updateTask({ estimated_minutes: null });
+                  } else {
+                    const parsed = parseInt(value, 10);
+                    if (!isNaN(parsed) && parsed > 0 && parsed < 1440) {
+                      updateTask({ estimated_minutes: parsed });
+                    }
+                  }
+                }}
+                placeholder="Optional: e.g., 30"
+                className="transition-all"
+              />
+              <p className="text-xs text-muted-foreground">
+                Optional: Estimated time to complete this task (1-1439 minutes)
+              </p>
+            </div>
+
+            <div className="space-y-2">
               <div>
                 <Label>Date & Time <span className="text-destructive">*</span></Label>
                 <p className="text-xs text-muted-foreground mt-1">

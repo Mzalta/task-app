@@ -45,6 +45,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           due_date: string | null
+          estimated_minutes: number | null
           image_url: string | null
           label: string | null
           priority: string
@@ -59,6 +60,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           due_date?: string | null
+          estimated_minutes?: number | null
           image_url?: string | null
           label?: string | null
           priority?: string
@@ -73,6 +75,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           due_date?: string | null
+          estimated_minutes?: number | null
           image_url?: string | null
           label?: string | null
           priority?: string

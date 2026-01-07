@@ -28,7 +28,8 @@ interface CreateTaskFormProps {
     description: string,
     dueDate: Date | undefined,
     imageFile: File | null,
-    priority: string
+    priority: string,
+    estimatedMinutes: number | null
   ) => Promise<void>;
 }
 
@@ -38,6 +39,7 @@ export function CreateTaskForm({ onSubmit }: CreateTaskFormProps) {
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [dueTime, setDueTime] = useState<string>("");
   const [priority, setPriority] = useState<string>("Medium");
+  const [estimatedMinutes, setEstimatedMinutes] = useState<string>("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -175,13 +177,24 @@ export function CreateTaskForm({ onSubmit }: CreateTaskFormProps) {
     try {
       // Get combined datetime with both date and time
       const combinedDateTime = getCombinedDateTime();
-      await onSubmit(title, description, combinedDateTime, imageFile, priority);
+      
+      // Validate and parse estimated_minutes
+      let estimatedMinutesValue: number | null = null;
+      if (estimatedMinutes.trim()) {
+        const parsed = parseInt(estimatedMinutes, 10);
+        if (!isNaN(parsed) && parsed > 0 && parsed < 1440) {
+          estimatedMinutesValue = parsed;
+        }
+      }
+      
+      await onSubmit(title, description, combinedDateTime, imageFile, priority, estimatedMinutesValue);
       // Reset form
       setTitle("");
       setDescription("");
       setDueDate(undefined);
       setDueTime("");
       setPriority("Medium");
+      setEstimatedMinutes("");
       setImageFile(null);
       setImagePreview(null);
     } catch (err) {
@@ -299,6 +312,24 @@ export function CreateTaskForm({ onSubmit }: CreateTaskFormProps) {
             <SelectItem value="High">High</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="estimatedMinutes">Estimated Effort (minutes)</Label>
+        <Input
+          id="estimatedMinutes"
+          type="number"
+          min="1"
+          max="1439"
+          value={estimatedMinutes}
+          onChange={(e) => setEstimatedMinutes(e.target.value)}
+          placeholder="Optional: e.g., 30"
+          disabled={isSubmitting}
+          className="transition-all"
+        />
+        <p className="text-xs text-muted-foreground">
+          Optional: Estimated time to complete this task (1-1439 minutes)
+        </p>
       </div>
 
       <div className="space-y-2">

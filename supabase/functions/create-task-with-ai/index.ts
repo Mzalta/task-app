@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { title, description, priority } = await req.json();
+    const { title, description, priority, estimated_minutes } = await req.json();
 
     console.log("🔄 Creating task with AI suggestions...");
     const authHeader = req.headers.get("Authorization");
@@ -50,6 +50,17 @@ Deno.serve(async (req) => {
       ? priority 
       : "Medium";
 
+    // Validate estimated_minutes if provided
+    let validatedEstimatedMinutes: number | null = null;
+    if (estimated_minutes !== undefined && estimated_minutes !== null) {
+      const parsed = typeof estimated_minutes === "number" 
+        ? estimated_minutes 
+        : parseInt(estimated_minutes, 10);
+      if (!isNaN(parsed) && parsed > 0 && parsed < 1440) {
+        validatedEstimatedMinutes = parsed;
+      }
+    }
+
     // Create the task
     const { data, error } = await supabaseClient
       .from("tasks")
@@ -58,6 +69,7 @@ Deno.serve(async (req) => {
         description,
         completed: false,
         priority: taskPriority,
+        estimated_minutes: validatedEstimatedMinutes,
         user_id: user.id,
       })
       .select()

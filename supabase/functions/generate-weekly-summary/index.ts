@@ -66,6 +66,11 @@ Highlight:
 Keep the tone supportive and human.
 Return plain text only.
 
+EFFORT ESTIMATES:
+- Effort estimates are approximate.
+- Use them only to identify broad workload patterns.
+- Do not overemphasize precision.
+
 Weekly stats:
 ${JSON.stringify(weeklyStats, null, 2)}`;
 
