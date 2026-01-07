@@ -241,7 +241,7 @@ function TaskForm() {
     e.preventDefault();
     
     // Validate required fields
-    if (!task.title || !task.title.trim()) {
+    if (!task || !task.title || !task.title.trim()) {
       toast({
         title: "❌ Validation Error",
         description: "Title is required",
