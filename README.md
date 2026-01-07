@@ -43,10 +43,9 @@ A full-stack SaaS task management application built with Next.js and Supabase, f
 npm install
 ```
 
-2. Create environment files - update the values with your keys.
+2. Create environment file - update the values with your keys.
 ```bash
 cp .env.example .env.local
-cp .env.example .env.test.local
 ```
 
 3. Run development server:
@@ -179,18 +178,16 @@ returning key_id;
 
 ### Required Environment Variables
 
-Add to `.env.local` and `.env.test.local`:
+Add to `.env.local`:
 
 ```bash
-# Add this to both:
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-
-# Only .env.test.local needs these:
 SUPABASE_SERVICE_KEY=your-service-key
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_PRICE_ID=price_...
 STRIPE_WEBHOOK_SECRET=whsec_...
+OPENAI_API_KEY=sk-your-openai-key
 ```
 
 ### Set Supabase Secrets

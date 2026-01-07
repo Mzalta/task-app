@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import TaskCard from "@/components/TaskCard";
 import { CreateTaskForm } from "@/components/CreateTaskForm";
 import TaskFilters, { FilterStatus, SortOption } from "@/components/TaskFilters";
-import { Plus, Filter, X } from "lucide-react";
+import { Plus, Filter, X, Sparkles } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Task } from "@/types/models";
 import { cn } from "@/lib/utils";
 import { isToday, isPast, isTomorrow } from "date-fns";
+import { AIPlanView } from "@/components/AIPlanView";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -31,6 +32,13 @@ export default function Dashboard() {
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
   const [dueDateFilter, setDueDateFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
+  
+  // AI Plan state
+  const [isPlanDialogOpen, setIsPlanDialogOpen] = useState(false);
+  const [planPeriod, setPlanPeriod] = useState<"day" | "week">("day");
+  const [planData, setPlanData] = useState<any[]>([]);
+  const [isPlanLoading, setIsPlanLoading] = useState(false);
+  const [planError, setPlanError] = useState<string | null>(null);
 
   const {
     createTask,
@@ -277,6 +285,52 @@ export default function Dashboard() {
   const completedCount = tasks.filter((t) => t.completed).length;
   const totalCount = tasks.length;
 
+  // Fetch AI plan
+  const fetchAIPlan = async (period: "day" | "week") => {
+    setIsPlanLoading(true);
+    setPlanError(null);
+    setPlanPeriod(period);
+    setIsPlanDialogOpen(true);
+
+    try {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        throw new Error("Not authenticated");
+      }
+
+      const response = await fetch("/api/ai/plan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ period }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to generate plan");
+      }
+
+      const data = await response.json();
+      setPlanData(data.plan || []);
+    } catch (error: any) {
+      console.error("Error fetching AI plan:", error);
+      setPlanError(error.message || "Failed to generate plan. Please try again.");
+      setPlanData([]);
+    } finally {
+      setIsPlanLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Main Container */}
@@ -315,6 +369,30 @@ export default function Dashboard() {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
+                    {/* AI Plan Buttons - Desktop */}
+                    <div className="hidden sm:flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="default"
+                        className="gap-2"
+                        onClick={() => fetchAIPlan("day")}
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        <span className="hidden md:inline">Plan My Day</span>
+                        <span className="md:hidden">Day</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="default"
+                        className="gap-2"
+                        onClick={() => fetchAIPlan("week")}
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        <span className="hidden md:inline">Plan My Week</span>
+                        <span className="md:hidden">Week</span>
+                      </Button>
+                    </div>
+
                     {/* Mobile Filters */}
                     <Sheet open={isMobileFiltersOpen} onOpenChange={setIsMobileFiltersOpen}>
                       <SheetTrigger asChild>
@@ -361,6 +439,28 @@ export default function Dashboard() {
                       </DialogContent>
                     </Dialog>
                   </div>
+                </div>
+                
+                {/* AI Plan Buttons - Mobile */}
+                <div className="flex sm:hidden items-center gap-2 mb-4">
+                  <Button
+                    variant="outline"
+                    size="default"
+                    className="gap-2 flex-1"
+                    onClick={() => fetchAIPlan("day")}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    Plan My Day
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="default"
+                    className="gap-2 flex-1"
+                    onClick={() => fetchAIPlan("week")}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    Plan My Week
+                  </Button>
                 </div>
               </div>
 
@@ -423,6 +523,16 @@ export default function Dashboard() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* AI Plan Dialog */}
+      <AIPlanView
+        isOpen={isPlanDialogOpen}
+        onClose={() => setIsPlanDialogOpen(false)}
+        period={planPeriod}
+        plan={planData}
+        isLoading={isPlanLoading}
+        error={planError}
+      />
     </div>
   );
 }
