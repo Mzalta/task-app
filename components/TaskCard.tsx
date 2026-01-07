@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,7 @@ interface TaskCardProps {
 }
 
 const TaskCard = ({ task, onDelete, onToggleComplete, onUpdateTitle }: TaskCardProps) => {
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title || "");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -288,8 +290,8 @@ const TaskCard = ({ task, onDelete, onToggleComplete, onUpdateTitle }: TaskCardP
             variant="ghost"
             size="icon"
             className="h-8 w-8"
-            onClick={() => setIsEditing(true)}
-            title="Edit title"
+            onClick={() => router.push(`/task?id=${task.task_id}`)}
+            title="Edit task"
           >
             <Edit2 className="h-4 w-4" />
           </Button>

@@ -1,9 +1,12 @@
+"use client";
+
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Edit, Trash2 } from "lucide-react";
 import { getLabelColors } from "@/lib/labels";
 import { Task } from "@/types/models";
@@ -17,6 +20,12 @@ interface TaskRowProps {
 }
 
 const TaskRow = ({ task, onDelete, onToggleComplete }: TaskRowProps) => {
+  const router = useRouter();
+
+  const handleEdit = () => {
+    router.push(`/task?id=${task.task_id}`);
+  };
+
   const formatDate = (dateString: string) => {
     try {
       // Check if the date includes time information
@@ -159,19 +168,19 @@ const TaskRow = ({ task, onDelete, onToggleComplete }: TaskRowProps) => {
           <Button 
             variant="ghost" 
             size="icon" 
-            asChild 
             className="h-8 w-8 transition-all hover:bg-primary/10 hover:text-primary"
+            onClick={handleEdit}
+            title="Edit task"
           >
-            <Link href={`/task?id=${task.task_id}`}>
-              <Edit className="h-4 w-4" />
-              <span className="sr-only">Edit</span>
-            </Link>
+            <Edit className="h-4 w-4" />
+            <span className="sr-only">Edit</span>
           </Button>
           <Button
             variant="ghost"
             size="icon"
             className="h-8 w-8 transition-all hover:bg-destructive/10 hover:text-destructive"
             onClick={() => onDelete(task.task_id)}
+            title="Delete task"
           >
             <Trash2 className="h-4 w-4" />
             <span className="sr-only">Delete</span>
