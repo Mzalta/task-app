@@ -180,6 +180,8 @@ Prioritize urgency and impact.
 Do not over-schedule.
 Return ONLY valid JSON.
 
+IMPORTANT: Only use the "due_date" field to determine when tasks are due. Do NOT infer due dates from task titles or descriptions. Only use the explicit due_date values provided.
+
 Each item must include:
 - task_id
 - suggested_order
@@ -205,7 +207,7 @@ Return a JSON object with a "plan" array containing objects with this exact stru
             {
               role: "system",
               content:
-                "You are a productivity assistant. Always return valid JSON only, no markdown, no commentary. Return a JSON object with a 'plan' array.",
+                "You are a productivity assistant. Always return valid JSON only, no markdown, no commentary. Return a JSON object with a 'plan' array. IMPORTANT: Only use the due_date field to determine when tasks are due. Never infer due dates from task titles or descriptions.",
             },
             { role: "user", content: prompt },
           ],

@@ -159,6 +159,18 @@ export function CreateTaskForm({ onSubmit }: CreateTaskFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    
+    // Validate required fields
+    if (!title.trim()) {
+      setError("Title is required");
+      return;
+    }
+    
+    if (!dueDate) {
+      setError("Due date is required");
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
       // Get combined datetime with both date and time
@@ -246,7 +258,7 @@ export function CreateTaskForm({ onSubmit }: CreateTaskFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="title">Title</Label>
+        <Label htmlFor="title">Title <span className="text-destructive">*</span></Label>
         <Input
           id="title"
           value={title}
@@ -290,7 +302,7 @@ export function CreateTaskForm({ onSubmit }: CreateTaskFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label>Due Date & Time</Label>
+        <Label>Due Date & Time <span className="text-destructive">*</span></Label>
         <div className="grid gap-3 sm:grid-cols-2">
           <Popover>
             <PopoverTrigger asChild>

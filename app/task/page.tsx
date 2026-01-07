@@ -239,6 +239,26 @@ function TaskForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!task.title || !task.title.trim()) {
+      toast({
+        title: "❌ Validation Error",
+        description: "Title is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!date) {
+      toast({
+        title: "❌ Validation Error",
+        description: "Due date is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       // Combine date and time before saving
       const combinedDateTime = getCombinedDateTime();
@@ -414,12 +434,13 @@ function TaskForm() {
         <CardContent className="p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
+              <Label htmlFor="title">Title <span className="text-destructive">*</span></Label>
               <Input
                 id="title"
                 value={task.title || ""}
                 onChange={(e) => updateTask({ title: e.target.value })}
                 placeholder="Enter task title"
+                required
                 className="transition-all"
               />
             </div>
@@ -470,7 +491,7 @@ function TaskForm() {
             </div>
 
             <div className="space-y-2">
-              <Label>Due Date & Time</Label>
+              <Label>Due Date & Time <span className="text-destructive">*</span></Label>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Popover>
                   <PopoverTrigger asChild>
