@@ -77,6 +77,7 @@ supabase db push
 
 # Deploy edge functions
 supabase functions deploy create-task-with-ai
+supabase functions deploy generate-task-plan
 supabase functions deploy openai-chat
 supabase functions deploy create-stripe-session
 supabase functions deploy stripe-webhook
@@ -187,8 +188,9 @@ SUPABASE_SERVICE_KEY=your-service-key
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_PRICE_ID=price_...
 STRIPE_WEBHOOK_SECRET=whsec_...
-OPENAI_API_KEY=sk-your-openai-key
 ```
+
+Note: `OPENAI_API_KEY` is not needed in `.env.local` - it's set as a Supabase secret (see below).
 
 ### Set Supabase Secrets
 

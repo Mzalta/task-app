@@ -306,7 +306,9 @@ export default function Dashboard() {
         throw new Error("Not authenticated");
       }
 
-      const response = await fetch("/api/ai/plan", {
+      const FUNCTION_ENDPOINT = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/generate-task-plan`;
+
+      const response = await fetch(FUNCTION_ENDPOINT, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

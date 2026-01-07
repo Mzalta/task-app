@@ -1,12 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
-import OpenAI from "openai";
+// Setup type definitions for built-in Supabase Runtime APIs
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+import OpenAI from "npm:openai";
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Load environment variables
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+// Set to "false" to temporarily disable OpenAI calls (useful when hitting quota limits)
+const ENABLE_OPENAI = Deno.env.get("ENABLE_OPENAI") !== "false";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
 
 interface Task {
   task_id: string;
@@ -23,64 +32,43 @@ interface PlanItem {
   short_reason: string;
 }
 
-export async function POST(request: NextRequest) {
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
   try {
-    // Get request body
-    const body = await request.json();
-    const { period } = body;
+    const { period } = await req.json();
 
     // Validate period
     if (period !== "day" && period !== "week") {
-      return NextResponse.json(
-        { error: "Invalid period. Must be 'day' or 'week'" },
-        { status: 400 }
+      return new Response(
+        JSON.stringify({ error: "Invalid period. Must be 'day' or 'week'" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
-    // Create Supabase client for server-side
-    const cookieStore = await cookies();
-    const authHeader = request.headers.get("Authorization");
-    
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              );
-            } catch {
-              // The `setAll` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
-            }
-          },
-        },
-        global: authHeader
-          ? {
-              headers: { Authorization: authHeader },
-            }
-          : undefined,
-      }
-    );
+    console.log(`🔄 Generating ${period} plan...`);
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error("No authorization header");
+    }
 
-    // Authenticate user
+    // Initialize Supabase client
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: {
+        headers: { Authorization: authHeader },
+      },
+    });
+
+    // Get user session
     const {
       data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    } = await supabaseClient.auth.getUser();
+    if (!user) throw new Error("No user found");
 
     // Calculate date range based on period
     const now = new Date();
@@ -97,7 +85,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch relevant tasks
-    let query = supabase
+    let query = supabaseClient
       .from("tasks")
       .select("task_id, title, description, due_date, priority, completed")
       .eq("user_id", user.id)
@@ -117,17 +105,25 @@ export async function POST(request: NextRequest) {
 
     if (tasksError) {
       console.error("Error fetching tasks:", tasksError);
-      return NextResponse.json(
-        { error: "Failed to fetch tasks" },
-        { status: 500 }
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch tasks" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
     if (!tasks || tasks.length === 0) {
-      return NextResponse.json({
-        plan: [],
-        message: `No tasks found for this ${period}.`,
-      });
+      return new Response(
+        JSON.stringify({
+          plan: [],
+          message: `No tasks found for this ${period}.`,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     // Sort tasks by due_date asc, priority desc
@@ -171,8 +167,12 @@ export async function POST(request: NextRequest) {
     let plan: PlanItem[] = [];
     let aiError = false;
 
-    if (process.env.OPENAI_API_KEY) {
+    if (OPENAI_API_KEY && ENABLE_OPENAI) {
       try {
+        const openai = new OpenAI({
+          apiKey: OPENAI_API_KEY,
+        });
+
         const prompt = `You are a productivity assistant.
 
 Given the tasks below, generate a realistic and achievable plan for the ${period}.
@@ -219,7 +219,7 @@ Return a JSON object with a "plan" array containing objects with this exact stru
           const parsed = JSON.parse(content);
           // Extract plan array from response
           plan = parsed.plan || parsed.items || [];
-          
+
           // Validate plan structure
           if (
             Array.isArray(plan) &&
@@ -238,8 +238,8 @@ Return a JSON object with a "plan" array containing objects with this exact stru
         } else {
           aiError = true;
         }
-      } catch (error) {
-        console.error("OpenAI error:", error);
+      } catch (openaiError: any) {
+        console.error("OpenAI error:", openaiError);
         aiError = true;
       }
     } else {
@@ -264,16 +264,24 @@ Return a JSON object with a "plan" array containing objects with this exact stru
       };
     });
 
-    return NextResponse.json({
-      plan: planWithTasks,
-      period,
-    });
+    return new Response(
+      JSON.stringify({
+        plan: planWithTasks,
+        period,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   } catch (error: any) {
     console.error("Error generating plan:", error);
-    return NextResponse.json(
-      { error: error.message || "Internal server error" },
-      { status: 500 }
+    return new Response(
+      JSON.stringify({ error: error.message || "Internal server error" }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
   }
-}
+});
 
